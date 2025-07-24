@@ -1,4 +1,3 @@
-
 import streamlit as st
 import sqlite3
 import openai
@@ -43,21 +42,31 @@ with st.form("idea_form"):
 
 # --- OpenAI Hook Punch-up (optional) ---
 st.subheader("✨ Punch Up Hook (Optional AI Assist)")
-openai_api_key = st.text_input("Enter OpenAI API Key", type="password")
+
+# Load API key from Streamlit secrets, or fallback to manual entry
+openai_api_key = st.secrets.get("OPENAI_API_KEY")
+
+# Optional fallback for local dev/testing:
+if not openai_api_key:
+    openai_api_key = st.text_input("Enter your OpenAI API key", type="password")
+
 prompt_input = st.text_input("Hook to improve")
 
 if st.button("🔁 Improve Hook"):
     if openai_api_key and prompt_input:
         openai.api_key = openai_api_key
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are a punchy short-form video writer. Make this hook more emotionally charged, relatable, or funny."},
-                {"role": "user", "content": prompt_input}
-            ]
-        )
-        improved_hook = response['choices'][0]['message']['content']
-        st.text_area("Improved Hook", value=improved_hook, height=100)
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a punchy short-form video writer. Make this hook more emotionally charged, relatable, or funny."},
+                    {"role": "user", "content": prompt_input}
+                ]
+            )
+            improved_hook = response['choices'][0]['message']['content']
+            st.text_area("Improved Hook", value=improved_hook, height=100)
+        except Exception as e:
+            st.error(f"Error: {e}")
     else:
         st.warning("Please enter your OpenAI API key and a hook to improve.")
 
