@@ -1,6 +1,6 @@
 import streamlit as st
 import sqlite3
-import openai
+from openai import OpenAI
 
 # --- Setup ---
 st.set_page_config(page_title="Dad Games Idea Generator", layout="wide")
@@ -62,15 +62,15 @@ if st.button("🔁 Improve Hook"):
         st.warning("Please enter a hook to improve.")
     else:
         try:
-            openai.api_key = openai_api_key
-            response = openai.ChatCompletion.create(
+            client = OpenAI(api_key=openai_api_key)
+            response = client.chat.completions.create(
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You are a punchy short-form video writer. Make this hook more emotionally charged, relatable, or funny."},
                     {"role": "user", "content": prompt_input}
                 ]
             )
-            improved_hook = response['choices'][0]['message']['content']
+            improved_hook = response.choices[0].message.content
             st.text_area("Improved Hook", value=improved_hook, height=100)
         except Exception as e:
             st.error(f"OpenAI API Error: {e}")
