@@ -142,5 +142,44 @@ if st.session_state.form_data["hook"]:
 
     st.text_input("🏷 Hashtags", value=st.session_state.form_data["hashtags"])
 
-# --- Separator ---
+    if st.button("💾 Save This Concept"):
+        c.execute("INSERT INTO ideas (title, hook, setup, twist, cta, hashtags) VALUES (?, ?, ?, ?, ?, ?)",
+                  (title, st.session_state.form_data["hook"], st.session_state.form_data["setup"],
+                   st.session_state.form_data["twist"], st.session_state.form_data["cta"], st.session_state.form_data["hashtags"]))
+        conn.commit()
+        st.success("Concept saved!")
+
+# --- Load and View Saved Ideas ---
 st.markdown("---")
+st.subheader("📂 Load a Saved Idea")
+c.execute("SELECT id, title FROM ideas ORDER BY id DESC")
+idea_options = c.fetchall()
+
+if idea_options:
+    selected = st.selectbox("Choose an idea to load", [f"{row[0]} - {row[1]}" for row in idea_options])
+    if st.button("📥 Load Selected Idea"):
+        idea_id = int(selected.split(" - ")[0])
+        c.execute("SELECT title, hook, setup, twist, cta, hashtags FROM ideas WHERE id = ?", (idea_id,))
+        data = c.fetchone()
+        if data:
+            st.session_state.form_data = {
+                "title": data[0],
+                "hook": data[1],
+                "setup": data[2],
+                "twist": data[3],
+                "cta": data[4],
+                "hashtags": data[5]
+            }
+            st.success("Idea loaded into input fields.")
+
+st.subheader("📦 Saved Ideas")
+c.execute("SELECT * FROM ideas ORDER BY id DESC")
+rows = c.fetchall()
+for row in rows:
+    st.markdown(f"### {row[1]}")
+    st.markdown(f"- **Hook**: {row[2]}")
+    st.markdown(f"- **Setup**: {row[3]}")
+    st.markdown(f"- **Twist**: {row[4]}")
+    st.markdown(f"- **CTA**: {row[5]}")
+    st.markdown(f"- **Hashtags**: {row[6]}")
+    st.markdown("---")
