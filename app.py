@@ -112,3 +112,33 @@ if st.button("🧠 Build My Video Concept"):
 
         except Exception as e:
             st.error(f"OpenAI API Error: {e}")
+
+# --- Output Section ---
+if st.session_state.idea_generated:
+    st.subheader("📋 Generated Video Blueprint")
+    st.text_input("🎯 Hook", value=st.session_state.form_data["hook"], key="hook_display")
+    st.text_area("🎬 Setup", value=st.session_state.form_data["setup"], height=100, key="setup_display")
+    st.text_area("💥 Twist / Punchline", value=st.session_state.form_data["twist"], height=100, key="twist_display")
+    st.text_input("📣 Call to Action", value=st.session_state.form_data["cta"], key="cta_display")
+    st.text_input("🏷 Hashtags", value=st.session_state.form_data["hashtags"], key="hashtags_display")
+
+    if st.button("💾 Save This Concept"):
+        c.execute("INSERT INTO ideas (title, hook, setup, twist, cta, hashtags) VALUES (?, ?, ?, ?, ?, ?)",
+                  (title, st.session_state.form_data["hook"], st.session_state.form_data["setup"],
+                   st.session_state.form_data["twist"], st.session_state.form_data["cta"], st.session_state.form_data["hashtags"]))
+        conn.commit()
+        st.success("Concept saved!")
+
+# --- Saved Ideas ---
+st.markdown("---")
+st.subheader("📦 Saved Ideas")
+c.execute("SELECT * FROM ideas ORDER BY id DESC")
+rows = c.fetchall()
+for row in rows:
+    st.markdown(f"### {row[1]}")
+    st.markdown(f"- **Hook**: {row[2]}")
+    st.markdown(f"- **Setup**: {row[3]}")
+    st.markdown(f"- **Twist**: {row[4]}")
+    st.markdown(f"- **CTA**: {row[5]}")
+    st.markdown(f"- **Hashtags**: {row[6]}")
+    st.markdown("---")
