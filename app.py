@@ -34,6 +34,21 @@ twist = st.text_area("💥 Twist / Punchline (Optional)", height=100)
 cta = st.text_input("📣 Call to Action (Optional)")
 hashtags = st.text_input("🏷 Hashtags (Optional)")
 
+# --- Load Idea Section ---
+st.subheader("📂 Load a Saved Idea")
+c.execute("SELECT id, title FROM ideas ORDER BY id DESC")
+idea_options = c.fetchall()
+
+if idea_options:
+    selected = st.selectbox("Choose an idea to load", [f"{row[0]} - {row[1]}" for row in idea_options])
+    if st.button("📥 Load Selected Idea"):
+        idea_id = int(selected.split(" - ")[0])
+        c.execute("SELECT title, hook, setup, twist, cta, hashtags FROM ideas WHERE id = ?", (idea_id,))
+        data = c.fetchone()
+        if data:
+            title, hook, setup, twist, cta, hashtags = data
+            st.experimental_rerun()
+
 # --- OpenAI Key ---
 openai_api_key = st.secrets.get("OPENAI_API_KEY", None)
 if not openai_api_key:
