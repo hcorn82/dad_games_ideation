@@ -103,51 +103,49 @@ if st.button("🧠 Build My Video Concept"):
             output_dict = {idea_output[i].strip(): idea_output[i+1].strip() for i in range(1, len(idea_output)-1, 2)}
 
             st.session_state.form_data.update({
-                "title": title,
-                "hook": output_dict.get("Text Overlay Hook", ""),
-                "setup": output_dict.get("Setup", ""),
-                "twist": output_dict.get("Twist / Punchline", ""),
-                "cta": output_dict.get("Call to Action", ""),
-                "hashtags": output_dict.get("Hashtags", "")
+                "hook": output_dict.get("Text Overlay Hook", st.session_state.form_data["hook"]),
+                "setup": output_dict.get("Setup", st.session_state.form_data["setup"]),
+                "twist": output_dict.get("Twist / Punchline", st.session_state.form_data["twist"]),
+                "cta": output_dict.get("Call to Action", st.session_state.form_data["cta"]),
+                "hashtags": output_dict.get("Hashtags", st.session_state.form_data["hashtags"])
             })
 
         except Exception as e:
             st.error(f"OpenAI API Error: {e}")
 
-# --- Display Section with Remix Buttons ---
-if st.session_state.form_data["hook"]:
-    st.subheader("📋 Generated Video Blueprint")
-    st.text_input("🎯 Hook", value=st.session_state.form_data["hook"])
+# --- Always Show Output Section ---
+st.subheader("📋 Generated Video Blueprint")
+st.text_input("🎯 Hook", value=st.session_state.form_data["hook"])
 
-    col1, col2 = st.columns([4, 1])
-    with col1:
-        new_setup = st.text_area("🎬 Setup", value=st.session_state.form_data["setup"], height=100)
-    with col2:
-        if st.button("🔁 Remix Setup"):
-            st.session_state.form_data["setup"] = remix_section(new_setup, "setup")
+col1, col2 = st.columns([4, 1])
+with col1:
+    new_setup = st.text_area("🎬 Setup", value=st.session_state.form_data["setup"], height=100)
+with col2:
+    if st.button("🔁 Remix Setup"):
+        st.session_state.form_data["setup"] = remix_section(new_setup, "setup")
 
-    col3, col4 = st.columns([4, 1])
-    with col3:
-        new_twist = st.text_area("💥 Twist", value=st.session_state.form_data["twist"], height=100)
-    with col4:
-        if st.button("🔁 Remix Twist"):
-            st.session_state.form_data["twist"] = remix_section(new_twist, "twist")
+col3, col4 = st.columns([4, 1])
+with col3:
+    new_twist = st.text_area("💥 Twist", value=st.session_state.form_data["twist"], height=100)
+with col4:
+    if st.button("🔁 Remix Twist"):
+        st.session_state.form_data["twist"] = remix_section(new_twist, "twist")
 
-    col5, col6 = st.columns([4, 1])
-    with col5:
-        new_cta = st.text_input("📣 Call to Action", value=st.session_state.form_data["cta"])
-    with col6:
-        if st.button("🔁 Remix CTA"):
-            st.session_state.form_data["cta"] = remix_section(new_cta, "call to action")
+col5, col6 = st.columns([4, 1])
+with col5:
+    new_cta = st.text_input("📣 Call to Action", value=st.session_state.form_data["cta"])
+with col6:
+    if st.button("🔁 Remix CTA"):
+        st.session_state.form_data["cta"] = remix_section(new_cta, "call to action")
 
-    st.text_input("🏷 Hashtags", value=st.session_state.form_data["hashtags"])
+st.text_input("🏷 Hashtags", value=st.session_state.form_data["hashtags"])
 
-    if st.button("💾 Save This Concept"):
-        c.execute("INSERT INTO ideas (title, hook, setup, twist, cta, hashtags) VALUES (?, ?, ?, ?, ?, ?)",
-                  (title, st.session_state.form_data["hook"], st.session_state.form_data["setup"],
-                   st.session_state.form_data["twist"], st.session_state.form_data["cta"], st.session_state.form_data["hashtags"]))
-        conn.commit()
-        st.success("Concept saved!")
+if st.button("💾 Save This Concept"):
+    c.execute("INSERT INTO ideas (title, hook, setup, twist, cta, hashtags) VALUES (?, ?, ?, ?, ?, ?)",
+              (title, st.session_state.form_data["hook"], st.session_state.form_data["setup"],
+               st.session_state.form_data["twist"], st.session_state.form_data["cta"], st.session_state.form_data["hashtags"]))
+    conn.commit()
+    st.success("Concept saved!")
 
 # --- Load and View Saved Ideas ---
 st.markdown("---")
