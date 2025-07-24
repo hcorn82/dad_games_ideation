@@ -41,6 +41,8 @@ if not openai_api_key:
     openai_api_key = st.text_input("Enter your OpenAI API key", type="password")
 
 # --- Idea Synthesizer ---
+remix_setup = remix_twist = remix_cta = False
+
 if st.button("🧠 Build My Video Concept"):
     if not openai_api_key:
         st.warning("Missing API key.")
@@ -85,10 +87,16 @@ if st.button("🧠 Build My Video Concept"):
                 ]
             )
 
-            idea_output = response.choices[0].message.content
+            idea_output = response.choices[0].message.content.split("**")
+            output_dict = {idea_output[i].strip(): idea_output[i+1].strip() for i in range(1, len(idea_output)-1, 2)}
 
             st.subheader("📋 Generated Video Blueprint")
-            st.markdown(idea_output)
+            st.text_input("🎯 Hook", value=output_dict.get("Text Overlay Hook", ""))
+            st.text_area("🎬 Setup", value=output_dict.get("Setup", ""), height=100)
+            st.text_area("💥 Twist", value=output_dict.get("Twist / Punchline", ""), height=100)
+            st.text_input("📣 Call to Action", value=output_dict.get("Call to Action", ""))
+            st.text_input("🏷 Hashtags", value=output_dict.get("Hashtags", ""))
+            st.text_area("📄 Suggested Description", value=output_dict.get("Suggested Description", ""), height=100)
 
         except Exception as e:
             st.error(f"OpenAI API Error: {e}")
