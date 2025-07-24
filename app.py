@@ -43,19 +43,26 @@ with st.form("idea_form"):
 # --- OpenAI Hook Punch-up (optional) ---
 st.subheader("✨ Punch Up Hook (Optional AI Assist)")
 
-# Load API key from Streamlit secrets, or fallback to manual entry
-openai_api_key = st.secrets.get("OPENAI_API_KEY")
+# Try to load API key from secrets
+openai_api_key = st.secrets.get("OPENAI_API_KEY", None)
 
-# Optional fallback for local dev/testing:
+# Fallback (manual entry if no secret present)
 if not openai_api_key:
+    st.info("No OpenAI key found in secrets. Please enter it manually for this session.")
     openai_api_key = st.text_input("Enter your OpenAI API key", type="password")
 
+# Hook input
 prompt_input = st.text_input("Hook to improve")
 
+# Improve Button Logic
 if st.button("🔁 Improve Hook"):
-    if openai_api_key and prompt_input:
-        openai.api_key = openai_api_key
+    if not openai_api_key:
+        st.warning("API key is missing. Please add it in Streamlit secrets or enter it manually.")
+    elif not prompt_input:
+        st.warning("Please enter a hook to improve.")
+    else:
         try:
+            openai.api_key = openai_api_key
             response = openai.ChatCompletion.create(
                 model="gpt-4",
                 messages=[
@@ -66,9 +73,7 @@ if st.button("🔁 Improve Hook"):
             improved_hook = response['choices'][0]['message']['content']
             st.text_area("Improved Hook", value=improved_hook, height=100)
         except Exception as e:
-            st.error(f"Error: {e}")
-    else:
-        st.warning("Please enter your OpenAI API key and a hook to improve.")
+            st.error(f"OpenAI API Error: {e}")
 
 # --- View Saved Ideas ---
 st.subheader("📚 Saved Ideas")
