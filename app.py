@@ -1,10 +1,9 @@
 import streamlit as st
 import sqlite3
-from openai import OpenAI
 
 # --- Setup ---
-st.set_page_config(page_title="Dad Games Idea Builder", layout="wide")
-st.title("🎮 Dad Games Flexible Idea Builder")
+st.set_page_config(page_title="Dad Games Viral Builder", layout="wide")
+st.title("🎮 Dad Games Viral Video Builder")
 
 # --- Connect to SQLite ---
 conn = sqlite3.connect("ideas.db", check_same_thread=False)
@@ -12,133 +11,95 @@ c = conn.cursor()
 c.execute('''
     CREATE TABLE IF NOT EXISTS ideas (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        mode TEXT,
         title TEXT,
         hook TEXT,
         setup TEXT,
         twist TEXT,
         cta TEXT,
-        hashtags TEXT
+        hashtags TEXT,
+        description TEXT
     )
 ''')
 conn.commit()
 
-# --- Initialize Session State ---
-if "form_data" not in st.session_state:
-    st.session_state.form_data = {
-        "title": "",
-        "hook": "",
-        "setup": "",
-        "twist": "",
-        "cta": "",
-        "hashtags": ""
-    }
+# --- Session State Init ---
+if "mode" not in st.session_state:
+    st.session_state.mode = "Quick Idea Mode"
 
-if "idea_generated" not in st.session_state:
-    st.session_state.idea_generated = False
+mode = st.radio("Select Mode:", ["Quick Idea Mode", "Workbook Mode"], horizontal=True)
+st.session_state.mode = mode
 
-# --- Flexible Input Section ---
-st.subheader("💡 Input anything you're thinking — we’ll build around it")
+def save_idea(mode, title, hook, setup, twist, cta, hashtags, description):
+    c.execute("INSERT INTO ideas (mode, title, hook, setup, twist, cta, hashtags, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+              (mode, title, hook, setup, twist, cta, hashtags, description))
+    conn.commit()
+    st.success("Concept saved!")
 
-raw_thought = st.text_area("🧠 Stream of Consciousness / General Idea", placeholder="Dump your messy idea here...")
+# --- Quick Idea Mode ---
+if mode == "Quick Idea Mode":
+    st.subheader("💡 Quick Build: Input anything you're thinking")
+    raw_thought = st.text_area("🧠 Dump your idea", placeholder="What dumb frustration are we turning into a viral hit?")
+    col1, col2 = st.columns(2)
+    with col1:
+        title = st.text_input("📛 Video Title")
+        hook = st.text_input("🎯 Hook")
+        cta = st.text_input("📣 Call to Action")
+    with col2:
+        hashtags = st.text_input("🏷 Hashtags")
+        description = st.text_area("📝 Suggested Description", height=100)
+    setup = st.text_area("🎬 Setup", height=100)
+    twist = st.text_area("💥 Twist", height=100)
 
-title = st.text_input("📛 Video Title (Optional)", value=st.session_state.form_data["title"])
-hook = st.text_input("🎯 Text Overlay / Hook (Optional)", value=st.session_state.form_data["hook"])
-setup = st.text_area("🎬 Setup (Optional)", height=100, value=st.session_state.form_data["setup"])
-twist = st.text_area("💥 Twist / Punchline (Optional)", height=100, value=st.session_state.form_data["twist"])
-cta = st.text_input("📣 Call to Action (Optional)", value=st.session_state.form_data["cta"])
-hashtags = st.text_input("🏷 Hashtags (Optional)", value=st.session_state.form_data["hashtags"])
+    if st.button("💥 Generate + Save"):
+        save_idea("Quick", title, hook, setup, twist, cta, hashtags, description)
 
-# --- OpenAI Key ---
-openai_api_key = st.secrets.get("OPENAI_API_KEY", None)
-if not openai_api_key:
-    st.info("No OpenAI API key found in secrets. Please enter it manually for this session.")
-    openai_api_key = st.text_input("Enter your OpenAI API key", type="password")
+# --- Workbook Mode ---
+else:
+    st.subheader("🧩 Workbook Mode: Walk through the full blueprint")
+    st.markdown("Answer each section below. We’ll stitch together your idea into a viral-ready post.")
 
-# --- Idea Synthesizer ---
-if st.button("🧠 Build My Video Concept"):
-    if not openai_api_key:
-        st.warning("Missing API key.")
-    elif not any([raw_thought, title, hook, setup, twist, cta, hashtags]):
-        st.warning("Enter at least one idea input.")
-    else:
-        try:
-            client = OpenAI(api_key=openai_api_key)
+    with st.expander("🎯 Phase 1: Viral Trigger"):
+        emotion = st.selectbox("Pick a dominant emotion", ["🤬 Frustration", "😂 Absurdity", "😢 Loss", "🤯 Surprise", "😤 Righteousness"])
+        trigger_note = st.text_area("What’s the emotional shrapnel?", placeholder="E.g., wife scheduled dinner over raid night")
 
-            user_message = (
-                f"Raw Thought: {raw_thought}\n\n"
-                f"Video Title: {title}\n"
-                f"Text Overlay Hook: {hook}\n"
-                f"Setup: {setup}\n"
-                f"Twist: {twist}\n"
-                f"CTA: {cta}\n"
-                f"Hashtags: {hashtags}"
-            )
+    with st.expander("📬 Phase 2: Sharable Premise"):
+        conflict = st.text_input("Recognizable conflict", placeholder="He bailed on game night… again")
+        overreaction = st.text_input("Overreaction", placeholder="You're killing him!")
+        petty_stakes = st.text_input("Petty stakes / fallout", placeholder="Just one hawk tuah, is that too much??")
 
-            system_prompt = (
-                "You are a short-form video concept developer for a content brand called Dad Games, targeting adult gamers—especially dads in their 30s and 40s—who juggle parenting, relationships, and their love of gaming.\n\n"
-                "These videos are short (under 60s), emotionally resonant, and structured for TikTok, Instagram Reels, and YouTube Shorts. They are built on relatable conflict, nostalgic hooks, and exaggerated or petty emotional reversals.\n\n"
-                "The goal is to provoke comment-worthy reactions like: 'This is literally me.' or 'Tag your squad.'\n\n"
-                "Your job is to take any combination of fragments—title, hook, twist, general idea—and generate a complete, structured video concept using this format:\n\n"
-                "**Text Overlay Hook (3–6 words)**: The first text viewers see. Must be bold, emotional, and specific.\n"
-                "**Setup**: The relatable normal moment (e.g., bedtime’s done, squad chat is full).\n"
-                "**Twist / Punchline**: What goes wrong, petty, or ironic (e.g., squad betrayal, guilt trap, bedtime sabotage).\n"
-                "**Call to Action**: A line that encourages viewers to tag someone, comment their version, or argue about what’s fair.\n"
-                "**Hashtags**: Use a mix of brand-specific (#DadGames), emotional (#RelatableAF), niche (#GamingAfterKids), and viral-friendly tags.\n"
-                "**Suggested Description**: Write like a TikTok/IG caption. Be short, honest, and funny. No hashtags here—just a voice the viewer would trust.\n\n"
-                "Tone should be slightly petty, emotionally honest, and playful. It should sound like a dad who's half-burnt-out, half-determined to play games anyway. Every video must feel emotionally legible in the first 3 seconds.\n\n"
-                "If only a few inputs are provided, fill in the rest using strong, structured defaults that would resonate with this audience."
-            )
+    with st.expander("🪞 Phase 3: The ‘You’ Test"):
+        you_line = st.text_input("What’s the callout line?", placeholder="You’re the reason he doesn’t rank up.")
 
-            response = client.chat.completions.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_message}
-                ]
-            )
+    with st.expander("🧰 Phase 4: Toolkit Pick"):
+        format_choice = st.radio("Choose a video delivery format", ["🎭 Meme Remix", "📹 On-Cam Skit", "🎧 VO Reaction", "🎬 Movie Clip + Text"])
 
-            idea_output = response.choices[0].message.content.split("**")
-            output_dict = {idea_output[i].strip(): idea_output[i+1].strip() for i in range(1, len(idea_output)-1, 2)}
+    with st.expander("📣 Phase 5: Comment Bait"):
+        bait = st.text_input("What will get people typing?", placeholder="Tag someone who bailed on game night.")
 
-            st.session_state.form_data.update({
-                "hook": output_dict.get("Text Overlay Hook", st.session_state.form_data["hook"]),
-                "setup": output_dict.get("Setup", st.session_state.form_data["setup"]),
-                "twist": output_dict.get("Twist / Punchline", st.session_state.form_data["twist"]),
-                "cta": output_dict.get("Call to Action", st.session_state.form_data["cta"]),
-                "hashtags": output_dict.get("Hashtags", st.session_state.form_data["hashtags"])
-            })
+    with st.expander("🔥 CTRL-ALT-DELETE Jam"):
+        ctrl = st.text_area("CTRL – What’s the real-life frustration?", height=80)
+        alt = st.text_area("ALT – What absurd lens could we use?", height=80)
+        delete = st.text_area("DELETE – What’s the emotional collapse?", height=80)
 
-            st.session_state.idea_generated = True
-
-        except Exception as e:
-            st.error(f"OpenAI API Error: {e}")
-
-# --- Output Section ---
-if st.session_state.idea_generated:
-    st.subheader("📋 Generated Video Blueprint")
-    st.text_input("🎯 Hook", value=st.session_state.form_data["hook"], key="hook_display")
-    st.text_area("🎬 Setup", value=st.session_state.form_data["setup"], height=100, key="setup_display")
-    st.text_area("💥 Twist / Punchline", value=st.session_state.form_data["twist"], height=100, key="twist_display")
-    st.text_input("📣 Call to Action", value=st.session_state.form_data["cta"], key="cta_display")
-    st.text_input("🏷 Hashtags", value=st.session_state.form_data["hashtags"], key="hashtags_display")
-
-    if st.button("💾 Save This Concept"):
-        c.execute("INSERT INTO ideas (title, hook, setup, twist, cta, hashtags) VALUES (?, ?, ?, ?, ?, ?)",
-                  (title, st.session_state.form_data["hook"], st.session_state.form_data["setup"],
-                   st.session_state.form_data["twist"], st.session_state.form_data["cta"], st.session_state.form_data["hashtags"]))
-        conn.commit()
-        st.success("Concept saved!")
+    if st.button("🧠 Save Workbook Concept"):
+        full_hook = f"{emotion} — {you_line}"
+        full_setup = f"Conflict: {conflict}\nOverreaction: {overreaction}\nPetty Fallout: {petty_stakes}\nCTRL: {ctrl}\nALT: {alt}"
+        full_twist = f"DELETE: {delete}"
+        full_description = f"{format_choice} | {trigger_note}"
+        save_idea("Workbook", "", full_hook, full_setup, full_twist, bait, "", full_description)
 
 # --- Saved Ideas ---
 st.markdown("---")
-st.subheader("📦 Saved Ideas")
+st.subheader("📦 Saved Concepts")
 c.execute("SELECT * FROM ideas ORDER BY id DESC")
 rows = c.fetchall()
 for row in rows:
-    st.markdown(f"### {row[1]}")
-    st.markdown(f"- **Hook**: {row[2]}")
-    st.markdown(f"- **Setup**: {row[3]}")
-    st.markdown(f"- **Twist**: {row[4]}")
-    st.markdown(f"- **CTA**: {row[5]}")
-    st.markdown(f"- **Hashtags**: {row[6]}")
+    st.markdown(f"### [{row[1]} Mode] {row[2] or '(Untitled)'}")
+    st.markdown(f"- **Hook**: {row[3]}")
+    st.markdown(f"- **Setup**: {row[4]}")
+    st.markdown(f"- **Twist**: {row[5]}")
+    st.markdown(f"- **CTA**: {row[6]}")
+    st.markdown(f"- **Hashtags**: {row[7]}")
+    st.markdown(f"- **Description**: {row[8]}")
     st.markdown("---")
